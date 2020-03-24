@@ -4,73 +4,74 @@ import random
 
 class Easy21:
     def __init__(self):
-        self.colour = ["B", "B", "R"]
+        self.dealerValue = 0
+
+    def reset(self):
+        self.dealerValue = random.randint(1, 10)
+        return random.randint(1, 10), self.dealerValue
 
     def step(self, present_state, action):
         next_state, reward = None, None
         player, dealer = present_state
+        reward = 0
+        terminal = False
 
-        # First move of the game.
-        if player == 0 and dealer == 0:
-            player = self.draw()
-            dealer = self.draw()
         # Player chooses to hit.
-        elif action == "hit":
-            red_or_black = random.choice(self.colour)
+        if action == "hit":
             value = self.draw()
+            player += value
 
-            # Subtract for red cards
-            if red_or_black == "R":
-                player -= value
-            # Add for black cards
+            if not 1 <= player <= 21:
+                reward = -1
+                terminal = True
             else:
-                player += value
+                reward = 0
+                terminal = False
 
         # Player chooses to stick. Dealer takes the turn.
         elif action == "stick":
-            if dealer < 17:
-                red_or_black = random.choice(self.colour)
-                value = self.draw()
+            terminal = True
 
-                # Subtract for red cards
-                if red_or_black == "R":
-                    player -= value
-                # Add for black cards
-                else:
-                    player += value
+            while 0 < self.dealerValue < 17:
+                self.dealerValue += self.draw()
 
-        # Check who has larger sum.
-        if player > dealer:
-            reward = 1
-        elif dealer > player:
-            reward = -1
-        else:
-            reward = 0
+            # Check if dealer went bust.
+            if not 1 <= self.dealerValue <= 21:
+                reward = 1
 
-        # Check if player went bust.
-        if player > 21 or player < 1:
-            reward = -1
-        # Check if dealer went bust.
-        if dealer > 21 or dealer < 1:
-            reward = 1
+            # Check who has larger sum.
+            if player > self.dealerValue:
+                reward = 1
+            elif self.dealerValue > player:
+                reward = -1
+            else:
+                reward = 0
 
-        next_state = (player, dealer)
-
-        return next_state, reward
+        return (player, dealer), reward, terminal
 
     def draw(self):
-        return random.randint(1, 10)
+        value = random.randint(1, 10)
+        if random.random() < 1/3:
+            return -value
+        else:
+            return value
+
+    def get_actions(self):
+        return ["hit", "stick"]
 
 if __name__ == "__main__":
     random.seed(0)
 
-    g = Easy21()
-    state = (0, 0)
-
     for i in range(10):
-        if i % 2 == 0:
-            state, r = g.step(state, "hit")
-        else:
-            state, r = g.step(state, "stick")
+        g = Easy21()
+        state = (g.draw(), g.draw())
+        action = None
 
-        print(f"state: {state}, reward: {r}")
+        if i % 2 == 0:
+            action = "hit"
+        else:
+            action = "stick"
+
+        _, r = g.step(state, action)
+
+        print(f"{i + 1}\t=> action: {action}, reward: {r}")
